@@ -74,12 +74,12 @@ class LocationService : Service() {
         val battery = getBatteryLevel()
         val network = getNetworkType()
 
-        val json = JSONObject().apply {
+       val json = JSONObject().apply {
             put("user_id", userId)
             put("lat", lat)
             put("lng", lng)
-            put("accuracy", accuracy)
-            put("speed", speed)
+            put("accuracy", accuracy.toDouble())
+            put("speed", speed.toDouble())
             put("battery", battery)
             put("network", network)
         }
