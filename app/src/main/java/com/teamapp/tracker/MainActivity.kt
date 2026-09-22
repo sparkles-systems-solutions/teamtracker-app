@@ -19,8 +19,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var passwordInput: EditText
     private lateinit var statusText: TextView
 
-    private val backgroundLocationLauncher =
+    private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { startServiceNow() }
+
+    private val backgroundLocationLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { requestNotificationPermissionThenStart() }
 
     private val fineLocationLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
@@ -32,7 +35,7 @@ class MainActivity : AppCompatActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 backgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             } else {
-                startServiceNow()
+                requestNotificationPermissionThenStart()
             }
         }
 
@@ -45,7 +48,6 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.statusText)
         val loginButton = findViewById<Button>(R.id.loginButton)
 
-        // Already logged in and service running? just show status.
         val prefs = getSharedPreferences("session", MODE_PRIVATE)
         if (prefs.getString("access_token", null) != null) {
             statusText.text = "Login වෙලා — tracking active"
@@ -70,7 +72,7 @@ class MainActivity : AppCompatActivity() {
                         .putString("access_token", result.accessToken)
                         .putString("user_id", result.userId)
                         .putString("email", email)
-                        .putString("password", password) // used only for silent token refresh
+                        .putString("password", password)
                         .apply()
                     statusText.text = "Login සාර්ථකයි — permissions ඉල්ලමින්..."
                     requestPermissionsThenStart()
@@ -85,13 +87,24 @@ class MainActivity : AppCompatActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 backgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             } else {
-                startServiceNow()
+                requestNotificationPermissionThenStart()
             }
         } else {
             fineLocationLauncher.launch(
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             )
         }
+    }
+
+    private fun requestNotificationPermissionThenStart() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                return
+            }
+        }
+        startServiceNow()
     }
 
     private fun startServiceNow() {
